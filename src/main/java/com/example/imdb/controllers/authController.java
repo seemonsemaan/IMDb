@@ -1,7 +1,9 @@
 package com.example.imdb.controllers;
 
 import com.example.imdb.classes.LoginDTO;
+import com.example.imdb.repositories.AuthRepository;
 import com.google.gson.Gson;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -10,57 +12,50 @@ import java.io.*;
 @RestController
 @RequestMapping("auth")
 public class authController {
+    @Autowired
+    AuthRepository authRepository;
+
     @PostMapping
     @RequestMapping("register")
     public ResponseEntity<String> register(@RequestBody LoginDTO login) {
-        File myObj = new File("credentials.txt");
-        try {
-            if (myObj.createNewFile()) {
-                System.out.println("File created: " + myObj.getName());
-            } else {
-                System.out.println("File already exists.");
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (authRepository.checkUserExists(login)) {
+            return ResponseEntity.badRequest().body("User already exists");
         }
 
-        try {
-            FileWriter myWriter = new FileWriter("credentials.json");
-            myWriter.write(new Gson().toJson(login));
-            myWriter.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return ResponseEntity.badRequest().body("Error registering");
-        }
+        login.setPassword(authRepository.EncryptPassword(login.getPassword()));
 
-        return ResponseEntity.ok("Successfully wrote to the file.");
+        int res = authRepository.register(login);
+        if (res > 0) {
+            return ResponseEntity.ok("User registered");
+        }
+        if (res == -1) {
+            return ResponseEntity.badRequest().body("Cannot create file");
+        }
+        if (res == -2) {
+            return ResponseEntity.badRequest().body("Cannot read file");
+        }
+        if (res == -3) {
+            return ResponseEntity.badRequest().body("Cannot write to file");
+        }
+        return ResponseEntity.badRequest().body("Unknown error");
     }
 
     @PostMapping
     @RequestMapping("login")
     public ResponseEntity<String> login(@RequestBody LoginDTO login) {
-        try {
-            File file = new File("credentials.json");
-            BufferedReader br = new BufferedReader(new FileReader(file));
-            StringBuilder json = new StringBuilder();
-            String st;
-            while ((st = br.readLine()) != null)
-                json.append(st);
-
-
-            LoginDTO correctLogin = new Gson().fromJson(json.toString(), LoginDTO.class);
-
-            if (login.getUsername().equals(correctLogin.getUsername()) && login.getPassword().equals(correctLogin.getPassword())) {
-                return ResponseEntity.ok("Correct credentials");
-            }
-            else{
-                return ResponseEntity.badRequest().body("Wrong credentials");
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (!authRepository.checkUserExists(login)) {
+            return ResponseEntity.badRequest().body("User does not exist");
         }
 
-        return ResponseEntity.badRequest().body("Error");
+        login.setPassword(authRepository.EncryptPassword(login.getPassword()));
+
+        int res = authRepository.login(login);
+        if (res == 1)
+            return ResponseEntity.ok("Correct credentials");
+        if (res == 0)
+            return ResponseEntity.badRequest().body("Wrong credentials");
+
+        return ResponseEntity.badRequest().body("Unknown Error");
 
     }
 }

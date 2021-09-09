@@ -45,3 +45,13 @@ A POST request to get the credentials stored in the json file credentials.json.
   `localhost:8080/auth/login`
 - The body is converted to a LoginDTO (String username and password).
 - If the credentials are correct the response is 200 OK, if they are wrong the response is 400 Bad Request.
+
+
+## Update
+
+- Change IMDb to call a service (Repository Pattern)
+- Handle more errors (if user exists, throw exception)
+- Support multiple users
+- Change Auth to call a service (Repository Pattern)
+- Encode the password using Hash function
+- Create a HandlerInterceptor to check if user is logged in, otherwise it returns 401 unauthorized

@@ -33,3 +33,4 @@ build/
 .vscode/
 /credentials.json
 /credentials.txt
+/login.json
